@@ -699,6 +699,7 @@ handleState(update,chatId);
     }
     @Override
     public String getBotToken() {
-        return "7888493511:AAFmvpDTjcYWg-psbpSFSnrTGr_UPnABnik";
+        return System.getenv("7888493511:AAFmvpDTjcYWg-psbpSFSnrTGr_UPnABnik");
     }
+
 }

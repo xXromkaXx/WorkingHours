@@ -697,9 +697,11 @@ handleState(update,chatId);
     public String getBotUsername() {
         return "RecordOfWorkingDays_bot";
     }
+
     @Override
     public String getBotToken() {
-        return System.getenv("7888493511:AAFmvpDTjcYWg-psbpSFSnrTGr_UPnABnik");
+        return "7888493511:AAFmvpDTjcYWg-psbpSFSnrTGr_UPnABnik";
     }
+
 
 }

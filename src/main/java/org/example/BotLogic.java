@@ -697,11 +697,8 @@ handleState(update,chatId);
     public String getBotUsername() {
         return "RecordOfWorkingDays_bot";
     }
-
     @Override
     public String getBotToken() {
-        return "7888493511:AAFmvpDTjcYWg-psbpSFSnrTGr_UPnABnik";
+        return System.getenv("TELEGRAM_BOT_TOKEN");
     }
-
-
 }

@@ -15,21 +15,38 @@ import java.util.concurrent.TimeUnit;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.logging.Handler;
-
+import java.net.URI;
+import java.net.URISyntaxException;
+import java.sql.Connection;
+import java.sql.DriverManager;
+import java.sql.SQLException;
 import org.json.JSONObject;
 
 public class DataBase {
-    private static DataBase instance; // Singleton-інстанс
-    private static final String URL = "jdbc:postgresql://localhost:5432/User";
-    private static final String USER = "postgres";
-    private static final String PASSWORD = "admin";
+    private static DataBase instance;
 
+    private String dbUrl;
 
-    // Приватний конструктор (захищає від прямого створення об'єктів)
     private DataBase() {
+        try {
+            String databaseUrl = System.getenv("DATABASE_URL"); // Отримання URL з Heroku
+            if (databaseUrl != null) {
+                URI dbUri = new URI(databaseUrl);
+                String userInfo = dbUri.getUserInfo();
+                String[] credentials = userInfo.split(":");
+                String username = credentials[0];
+                String password = credentials[1];
+
+                dbUrl = "jdbc:postgresql://" + dbUri.getHost() + ':' + dbUri.getPort() + dbUri.getPath() +
+                        "?sslmode=require&user=" + username + "&password=" + password;
+            } else {
+                throw new IllegalStateException("DATABASE_URL не знайдено у змінних середовища");
+            }
+        } catch (URISyntaxException e) {
+            throw new RuntimeException("Помилка розбору DATABASE_URL", e);
+        }
     }
 
-    // Метод для отримання Singleton-інстансу
     public static DataBase getInstance() {
         if (instance == null) {
             instance = new DataBase();
@@ -37,10 +54,10 @@ public class DataBase {
         return instance;
     }
 
-    // Метод для отримання підключення до бази даних
     public Connection getConnection() throws SQLException {
-        return DriverManager.getConnection(URL, USER, PASSWORD);
+        return DriverManager.getConnection(dbUrl);
     }
+
 
     public String getUserName(Long chatId) {
         String sql = "SELECT username FROM users WHERE chatid = ?";

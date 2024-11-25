@@ -1,3 +1,1 @@
-web: java -jar java -jar target/Work-1.0-SNAPSHOT.jar
-
-
+web: java -jar target/Work-1.0-SNAPSHOT.jar

@@ -31,6 +31,9 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class Logig extends TelegramLongPollingBot {
 
+    private final String BOT_USERNAME = System.getenv("BOT_USERNAME");
+    private final String BOT_TOKEN = System.getenv("BOT_TOKEN");
+
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Map<Long, ScheduledFuture<?>> reminderTasks = new ConcurrentHashMap<>();
 

@@ -136,7 +136,7 @@ public class Logig extends TelegramLongPollingBot {
 
     private enum State {
         START, reg, SavingName, AddWork, SavingWork, MAIN,ENTER_HOURS,SELECT_WORK_TO_VIEW,VIEW_WORK_HOURS,EDIT_WORK,MainMenuBackForLIST,MainMenuBackForAddWork,editingHours
-    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE
+    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE
     }
 
     private String selectedWork;
@@ -612,11 +612,16 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     }
                     break;
                 case SET_TIMEZONE:
-                    String selectedTimezone = messageText.trim();
+                    sendTimezoneKeyboard(chatId); // Відправляємо клавіатуру з вибором
+                    currentState = State.WAITING_FOR_TIMEZONE; // Переходимо у стан очікування
+                    break;
+                case WAITING_FOR_TIMEZONE:
+                    String selectedTimezone =formatTimezone( messageText.trim());
 
                     // Якщо вибрано "Інший..."
                     if (selectedTimezone.equals("🏳 Інший... (ввести вручну)")) {
                         sendMessage(chatId, "✍ Введіть назву вашого часового поясу (наприклад: `Europe/Paris`):");
+                        currentState = State.WAITING_FOR_CUSTOM_TIMEZONE;
                         return;
                     }
 
@@ -630,11 +635,22 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     }
 
                     updateUserTimezone(chatId, selectedTimezone);
-                    sendMessage(chatId, "✅ Ваш часовий пояс оновлено на: `" + selectedTimezone + "`");
+
 
                     currentState = State.MAIN; // Повертаємо в головне меню:
-break;
+                    menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n");
+                    break;
+                case WAITING_FOR_CUSTOM_TIMEZONE: // Користувач вводить пояс вручну
+                    selectedTimezone = formatTimezone(messageText.trim());
 
+                    if (!ZoneId.getAvailableZoneIds().contains(selectedTimezone)) {
+                        sendMessage(chatId, "❌ Некоректний часовий пояс! Використовуйте формат `Europe/Kyiv`, `America/New_York` тощо.");
+                        return;
+                    }
+                    updateUserTimezone(chatId, selectedTimezone);
+                    currentState = State.MAIN;
+                    menuMain(chatId, "✅ Часовий пояс встановлено: " + selectedTimezone + "\n\nОберіть дію:");
+                    break;
 
             }
         }
@@ -1451,7 +1467,7 @@ break;
             pstmt.setString(1, timezone);
             pstmt.setLong(2, chatId);
             pstmt.executeUpdate();
-            sendMessage(chatId, "Ваш часовий пояс оновлено на " + timezone);
+            sendMessage(chatId, "✅ Ваш часовий пояс оновлено на: `" + timezone + "`");
         } catch (SQLException e) {
             sendMessage(chatId, "Помилка при оновленні часового поясу.");
         }

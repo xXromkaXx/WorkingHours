@@ -31,9 +31,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 public class Logig extends TelegramLongPollingBot {
 
-    private final String BOT_USERNAME = System.getenv("BOT_USERNAME");
-    private final String BOT_TOKEN = System.getenv("BOT_TOKEN");
-
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
     private final Map<Long, ScheduledFuture<?>> reminderTasks = new ConcurrentHashMap<>();
 
@@ -1421,10 +1418,11 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
     }
     @Override
     public String getBotUsername() {
-        return "RecordOfWorkingDays_bot";
+        return System.getenv("BOT_USERNAME"); // Читаємо з середовища
     }
+
     @Override
     public String getBotToken() {
-        return "7888493511:AAFmvpDTjcYWg-psbpSFSnrTGr_UPnABnik";
+        return System.getenv("BOT_TOKEN"); // Читаємо з середовища
     }
 }

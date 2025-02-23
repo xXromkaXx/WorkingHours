@@ -57,15 +57,13 @@ public class Logig extends TelegramLongPollingBot {
 
     // Метод для налаштування щоденного нагадування для конкретного користувача
     private void scheduleDailyReminder(long chatId, int hour, int minute) {
-        String timezone = getUserTimezone(chatId); // Отримуємо часовий пояс
-        ZonedDateTime now = ZonedDateTime.now(ZoneId.of(timezone));
-        ZonedDateTime targetTime = now.withHour(hour).withMinute(minute).withSecond(0);
-
-        if (now.isAfter(targetTime)) {
-            targetTime = targetTime.plusDays(1);
+        String timezone = getUserTimezone(chatId);
+        if (!ZoneId.getAvailableZoneIds().contains(timezone)) {
+            timezone = "Europe/Warsaw"; // Значення за замовчуванням
         }
 
-        long initialDelay = Duration.between(now, targetTime).toMillis();
+        long initialDelay = calculateInitialDelay(LocalTime.of(hour, minute), timezone);
+
         long period = TimeUnit.DAYS.toMillis(1);
 
         if (reminderTasks.containsKey(chatId)) {
@@ -80,17 +78,19 @@ public class Logig extends TelegramLongPollingBot {
     }
 
 
-    // Метод для обчислення початкової затримки до наступного нагадування
-    private long calculateInitialDelay(LocalTime targetTime) {
-        LocalDateTime now = LocalDateTime.now();
-        LocalDateTime nextReminder = now.toLocalDate().atTime(targetTime);
+
+    private long calculateInitialDelay(LocalTime targetTime, String timezone) {
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of(timezone));
+        ZonedDateTime nextReminder = now.withHour(targetTime.getHour()).withMinute(targetTime.getMinute()).withSecond(0);
 
         if (now.isAfter(nextReminder)) {
-            nextReminder = nextReminder.plusDays(1);  // Якщо час вже пройшов, встановлюємо на наступний день
+            nextReminder = nextReminder.plusDays(1);
         }
 
         return Duration.between(now, nextReminder).toMillis();
     }
+
+
 
     // Метод для відправки нагадування
     private void sendDailyReminder(long chatId) {
@@ -478,8 +478,9 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
                         case "Видалити роботу":
                             deleteJob(chatId, selectedWork);
-                            sendMessage(chatId, "Роботу \"" + selectedWork + "\" видалено.");
                             currentState = State.MAIN;
+                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
+
                             break;
 
                         case "Редагувати години":

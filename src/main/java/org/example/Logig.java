@@ -61,15 +61,15 @@ public class Logig extends TelegramLongPollingBot {
         if (!ZoneId.getAvailableZoneIds().contains(timezone)) {
             timezone = "Europe/Warsaw"; // Значення за замовчуванням
         }
-
-        long initialDelay = calculateInitialDelay(LocalTime.of(hour, minute), timezone);
-
-        long period = TimeUnit.DAYS.toMillis(1);
-
         if (reminderTasks.containsKey(chatId)) {
             reminderTasks.get(chatId).cancel(false);
             reminderTasks.remove(chatId);
         }
+        long initialDelay = calculateInitialDelay(LocalTime.of(hour, minute), timezone);
+
+        long period = TimeUnit.DAYS.toMillis(1);
+
+
 
         ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> sendDailyReminder(chatId),
                 initialDelay, period, TimeUnit.MILLISECONDS);
@@ -139,7 +139,7 @@ public class Logig extends TelegramLongPollingBot {
 
     private enum State {
         START, reg, SavingName, AddWork, SavingWork, MAIN,ENTER_HOURS,SELECT_WORK_TO_VIEW,VIEW_WORK_HOURS,EDIT_WORK,MainMenuBackForLIST,MainMenuBackForAddWork,editingHours
-    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE
+    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE, CONFIRM_DELETEWORK
     }
 
     private String selectedWork;
@@ -260,25 +260,31 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
             switch (currentState) {
 
                 case reg:
-                    sendMessage(chatId, "Вкажіть, як до вас звертатися:");
+                    sendMessage(chatId, "\uD83D\uDC4B Привіт! Давай познайомимося. Як до тебе звертатися?");
 
                     currentState = State.SavingName;  // Переходимо до наступного стану
                     break;
                 case SavingName:
-                    if (formatString(messageText)) {
-                        userName = messageText;  // Зберігаємо ім'я користувача
-                        addUser(chatId, userName);
-                        sendMessage(chatId, "Привіт, " + userName + "!");
-                        currentState = State.AddWork;
+                    if (!update.hasMessage() || !update.getMessage().hasText()) {
+                        sendMessage(chatId, "⚠ Будь ласка, введіть ваше ім’я текстом!");
+                        return;
                     }
-                    else
-                    {
-                        sendMessage(chatId,"Ім'я містить недопустимі символи!");
-                        currentState=State.reg;
-                        handleState(update,chatId);
+                    if (formatString(messageText)) {
+                        userName = messageText;
+                        addUser(chatId, userName);
+                        sendMessage(chatId, "Чудово," + userName + "! Тепер можеш почати вести свій робочий час ⏳");
+                        currentState = State.AddWork;
+                    } else {
+                        sendMessage(chatId, "❌ Ой, ім'я містить недопустимі символи. Спробуй ще раз!");
                     }
                     break;
+
                 case AddWork:
+                    if (!isValidState(State.MAIN)) {
+                        sendMessage(chatId, "⚠ Ви натиснули кнопку не в той момент! Будь ласка, завершіть попередню дію.");
+                        return;
+                    }
+
                     // Перевіряємо, чи користувач має хоча б одну роботу
                     if (getUserJobs(chatId).size() > 0) {
                         // Користувач має принаймні одну роботу, тому відображаємо додаткову клавіатуру
@@ -340,6 +346,10 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
 
                 case reminderSetup:
+                    if (!isValidState(State.MAIN)) {
+                        sendMessage(chatId, "⚠ Ви натиснули кнопку не в той момент! Будь ласка, завершіть попередню дію.");
+                        return;
+                    }
 
 
                     if (messageText.equals("Змінити час")) {
@@ -385,7 +395,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     }
 
                     if (currentSubState == SubState.WAIT_FOR_HOURS_R) {
-                        if (!messageText.matches("\\d+")) {
+                        if (!messageText.matches("\\d+")|| Integer.parseInt(messageText) < 0 || Integer.parseInt(messageText) > 23) {
                             sendMessage(chatId, "Будь ласка, введіть числове значення для години (0-23).");
                             break;
                         }
@@ -438,6 +448,11 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
 
                 case MAIN:
+                    if (!isValidState(State.MAIN)) {
+                        sendMessage(chatId, "⚠ Ви натиснули кнопку не в той момент! Будь ласка, завершіть попередню дію.");
+                        return;
+                    }
+
                     if (getJobNamesForUser(chatId).contains(messageText)) {
                         selectedWork = messageText;
                         currentState = State.EDIT_WORK;
@@ -452,7 +467,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     } if (messageText.equals("Нагадування")) {
 
                         currentState = State.reminderSetup;
-
+                    showReminders(chatId);
                         sendMessageWithKeyboard(chatId, "Виберіть дію для нагадування:", createReminderKeyboard());
                         return;  // ВАЖЛИВО! Зупиняє виконання handleState(), щоб не пішло далі!
 
@@ -481,11 +496,13 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                             return;
 
                         case "Видалити роботу":
-                            deleteJob(chatId, selectedWork);
-                            currentState = State.MAIN;
-                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
-
+//                            deleteJob(chatId, selectedWork);
+//                            currentState = State.MAIN;
+//                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
+                            sendDeleteConfirmation(chatId, selectedWork);
+                            currentState = State.CONFIRM_DELETEWORK;
                             break;
+
 
                         case "Редагувати години":
 
@@ -503,6 +520,8 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     }
                     break;
 
+
+
                 default:
                     sendMessage(chatId, "Щось пішло не так. Спробуйте ще раз.");
                     currentState = State.MAIN;
@@ -511,6 +530,9 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     if (messageText.equals("Назад")) {
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);  // Повертаємо користувача до меню редагування роботи
+                        return;
+                    }else if (!messageText.matches("\\d+")) {
+                        sendMessage(chatId, "❌ Введіть тільки число годин (наприклад, 5).");
                         return;
                     }
                     try {
@@ -523,6 +545,21 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                         sendMessage(chatId, "Введіть коректну кількість годин.");
                     }
                     break;
+
+                case CONFIRM_DELETEWORK:
+                    if (messageText.equals("✅ Так, видалити")) {
+                        deleteJob(chatId, selectedWork);
+                        sendMessage(chatId, "✅ Роботу \"" + selectedWork + "\" успішно видалено.");
+                        currentState = State.MAIN;
+                        menuMain(chatId, "Оберіть наступну дію:");
+                    } else if (messageText.equals("❌ Скасувати")) {
+                        sendMessage(chatId, "❌ Видалення скасовано.");
+                        currentState = State.EDIT_WORK;
+                        showSettingUpWorkMenu(chatId);
+                    }
+                    break;
+
+
                 case SELECT_WORK_TO_VIEW:
 
                         currentState = State.VIEW_WORK_HOURS;
@@ -643,6 +680,8 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     currentState = State.MAIN; // Повертаємо в головне меню:
                     menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n");
                     break;
+
+
                 case WAITING_FOR_CUSTOM_TIMEZONE: // Користувач вводить пояс вручну
                     selectedTimezone = formatTimezone(messageText.trim());
 
@@ -1000,7 +1039,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            logger.error("Помилка  {}", e.getMessage(), e);
         }
     }
 
@@ -1058,9 +1097,33 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            logger.error("Помилка  меню кнопок {}", e.getMessage(), e);        }
+    }
+
+
+    private void sendDeleteConfirmation(long chatId, String workName) {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText("⚠ Ви впевнені, що хочете видалити роботу \"" + workName + "\"?");
+
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+
+        KeyboardRow confirmRow = new KeyboardRow();
+        confirmRow.add(new KeyboardButton("✅ Так, видалити"));
+        confirmRow.add(new KeyboardButton("❌ Скасувати"));
+
+        keyboardMarkup.setKeyboard(List.of(confirmRow));
+
+        message.setReplyMarkup(keyboardMarkup);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+
         }
     }
+
 
 
     private List<String> getWorkHoursData(long chatId, String workName) {
@@ -1139,7 +1202,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
             return true; // Успішно видалено
 
         } catch (SQLException e) {
-            e.printStackTrace();
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
             return false; // Видалення не вдалося через помилку
         }
     }
@@ -1224,7 +1287,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
         try {
             execute(message);
         } catch (TelegramApiException e) {
-            e.printStackTrace();
+            logger.error("Помилка  {}", e.getMessage(), e);
         }
     }
 
@@ -1565,6 +1628,39 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
         return null;
     }
 
+
+
+
+    private boolean isValidState(State expectedState) {
+        return currentState == expectedState;
+    }
+
+
+
+    private void showReminders(long chatId) {
+        String sql = "SELECT reminder_hour, reminder_minute,timezone FROM users WHERE chatid = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(sql)) {
+            pstmt.setLong(1, chatId);
+            ResultSet rs = pstmt.executeQuery();
+
+            if (rs.next()) {
+                int hour = rs.getInt("reminder_hour");
+                int minute = rs.getInt("reminder_minute");
+                String timezone= rs.getString("timezone");
+
+                sendMessage(chatId, "🔔 Ваше нагадування встановлено на *" + formatTime(hour, minute) + "* (часовий пояс: " + timezone + ").");
+            } else {
+                sendMessage(chatId, "У вас немає активного нагадування про запис робочих годин. Встановіть нагадування, щоб не забувати вносити дані ⏰.");
+            }
+        } catch (SQLException e) {
+            logger.error("Помилка при отриманні нагадувань: {}", e.getMessage(), e);
+        }
+    }
+
+    private String formatTime(int hour, int minute) {
+        return String.format("%02d:%02d", hour, minute);
+    }
 
 
     @Override

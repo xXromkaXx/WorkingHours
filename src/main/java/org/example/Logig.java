@@ -346,10 +346,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
 
                 case reminderSetup:
-                    if (!isValidState(State.MAIN)) {
-                        sendMessage(chatId, "⚠ Ви натиснули кнопку не в той момент! Будь ласка, завершіть попередню дію.");
-                        return;
-                    }
+
 
 
                     if (messageText.equals("Змінити час")) {
@@ -448,10 +445,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
 
                 case MAIN:
-                    if (!isValidState(State.MAIN)) {
-                        sendMessage(chatId, "⚠ Ви натиснули кнопку не в той момент! Будь ласка, завершіть попередню дію.");
-                        return;
-                    }
+
 
                     if (getJobNamesForUser(chatId).contains(messageText)) {
                         selectedWork = messageText;

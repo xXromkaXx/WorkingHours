@@ -1150,9 +1150,17 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
         try {
             JSONObject jsonObject = new JSONObject(workDataJson);
-            for (String day : jsonObject.keySet()) {
-                int hours = jsonObject.getInt(day);
-                hoursData.add("📅 *День:* " + Integer.parseInt(day) + " | ⏳ *Години:* " + hours);
+
+            // Отримуємо та сортуємо ключі (дні)
+            List<Integer> sortedDays = jsonObject.keySet().stream()
+                    .map(Integer::parseInt)
+                    .sorted()
+                    .toList();
+
+            // Додаємо відсортовані дні до результату
+            for (Integer day : sortedDays) {
+                int hours = jsonObject.getInt(day.toString());
+                hoursData.add("📅 *" + day + "* | ⏳ *" + hours + " год*");
             }
         } catch (Exception e) {
             e.printStackTrace();

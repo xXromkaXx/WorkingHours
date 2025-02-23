@@ -6,21 +6,23 @@ import java.net.URI;
 import java.net.URISyntaxException;
 
 public class DatabaseConnection {
-    private static final String RAW_URL = System.getenv("DATABASE_URL");
     private static String DB_URL;
     private static String USER;
     private static String PASSWORD;
 
     static {
         try {
-            // Парсимо URL та приводимо його до JDBC формату
+            // Отримуємо URL з змінної середовища
+            String RAW_URL = System.getenv("DATABASE_URL");
+
+            // Перетворюємо у правильний формат для JDBC
             URI dbUri = new URI(RAW_URL);
             String[] userInfo = dbUri.getUserInfo().split(":");
-
             USER = userInfo[0];
             PASSWORD = userInfo[1];
 
             DB_URL = "jdbc:postgresql://" + dbUri.getHost() + ":" + dbUri.getPort() + dbUri.getPath();
+
         } catch (URISyntaxException | NullPointerException e) {
             System.err.println("Помилка парсингу DATABASE_URL: " + e.getMessage());
         }

@@ -1,5 +1,6 @@
 package org.example;
 
+import java.time.*;
 import java.util.Map;
 import java.util.concurrent.*;
 import java.sql.Connection;
@@ -8,14 +9,11 @@ import java.sql.SQLException;
 import java.sql.ResultSet;
 import java.util.ArrayList;
 import java.util.List;
-import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.time.LocalTime;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
 import java.util.concurrent.TimeUnit;
-import java.time.Duration;
-import java.time.LocalDateTime;
+
 import org.json.JSONObject;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
@@ -59,32 +57,28 @@ public class Logig extends TelegramLongPollingBot {
 
     // Метод для налаштування щоденного нагадування для конкретного користувача
     private void scheduleDailyReminder(long chatId, int hour, int minute) {
-        LocalTime targetTime = LocalTime.of(hour, minute);
-        long initialDelay = calculateInitialDelay(targetTime);
-        long period = TimeUnit.DAYS.toMillis(1);
-// Гарантуємо, що `initialDelay` не буде занадто малим
-        if (initialDelay < 60000) { // Менше 1 хвилини
-            initialDelay += period; // Переносимо на наступний день
+        String timezone = getUserTimezone(chatId); // Отримуємо часовий пояс
+        ZonedDateTime now = ZonedDateTime.now(ZoneId.of(timezone));
+        ZonedDateTime targetTime = now.withHour(hour).withMinute(minute).withSecond(0);
+
+        if (now.isAfter(targetTime)) {
+            targetTime = targetTime.plusDays(1);
         }
 
-        // Скасовуємо попереднє нагадування, якщо воно є
+        long initialDelay = Duration.between(now, targetTime).toMillis();
+        long period = TimeUnit.DAYS.toMillis(1);
+
         if (reminderTasks.containsKey(chatId)) {
             reminderTasks.get(chatId).cancel(false);
-            reminderTasks.remove(chatId);  // Додаємо цей рядок!
+            reminderTasks.remove(chatId);
         }
 
-        // Запускаємо нове нагадування
-        ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> {
-            try {
-                sendDailyReminder(chatId);
-            } catch (Exception e) {
-                e.printStackTrace();
-            }
-        }, initialDelay, period, TimeUnit.MILLISECONDS);
+        ScheduledFuture<?> task = scheduler.scheduleAtFixedRate(() -> sendDailyReminder(chatId),
+                initialDelay, period, TimeUnit.MILLISECONDS);
 
-        // Зберігаємо нове нагадування
         reminderTasks.put(chatId, task);
     }
+
 
     // Метод для обчислення початкової затримки до наступного нагадування
     private long calculateInitialDelay(LocalTime targetTime) {
@@ -201,7 +195,11 @@ private Integer rHours=null;
                 } else {
                     currentState = State.MAIN;
                 }
+            }else if (messageText.startsWith("/settimezone ")) {
+                String timezone = messageText.substring(12).trim();
+                updateUserTimezone(chatId, timezone);
             }
+
 
             // Викликаємо обробку станів
             handleState(update, chatId);
@@ -320,7 +318,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                         }
                         else {
                             addWork(chatId, messageText);
-                            sendMessage(chatId, "Роботу додано, виберіть наступну дію:");
+                            menuMain(chatId, "Роботу додано, виберіть наступну дію:");
                             currentState = State.MAIN;
 
                         }
@@ -1416,6 +1414,44 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
         return keyboardMarkup;
     }
+
+
+
+
+
+
+    //тайм зона
+    public void updateUserTimezone(long chatId, String timezone) {
+        String query = "UPDATE users SET timezone = ? WHERE chatid = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setString(1, timezone);
+            pstmt.setLong(2, chatId);
+            pstmt.executeUpdate();
+            sendMessage(chatId, "Ваш часовий пояс оновлено на " + timezone);
+        } catch (SQLException e) {
+            sendMessage(chatId, "Помилка при оновленні часового поясу.");
+        }
+    }
+    private String getUserTimezone(long chatId) {
+        String query = "SELECT timezone FROM users WHERE chatid = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setLong(1, chatId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("timezone");
+            }
+        } catch (SQLException e) {
+            e.printStackTrace();
+        }
+        return "Europe/Warsaw"; // Значення за замовчуванням
+    }
+
+
+
+
+
     @Override
     public String getBotUsername() {
         return System.getenv("BOT_USERNAME"); // Читаємо з середовища

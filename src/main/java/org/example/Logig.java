@@ -611,7 +611,8 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                             break;
                     }
                     break;
-                case SET_TIMEZONE: String selectedTimezone = messageText.trim();
+                case SET_TIMEZONE:
+                    String selectedTimezone = messageText.trim();
 
                     // Якщо вибрано "Інший..."
                     if (selectedTimezone.equals("🏳 Інший... (ввести вручну)")) {
@@ -620,7 +621,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     }
 
                     // Витягуємо лише назву часового поясу (без прапорця)
-                    selectedTimezone = selectedTimezone.replaceAll("^[^a-zA-Z]+", "").trim();
+                    selectedTimezone =formatTimezone( selectedTimezone.replaceAll("^[^a-zA-Z]+", "").trim());
 
                     // Перевіряємо, чи пояс валідний
                     if (!ZoneId.getAvailableZoneIds().contains(selectedTimezone)) {
@@ -1505,6 +1506,28 @@ break;
             e.printStackTrace();
         }
         return "Europe/Warsaw"; // Значення за замовчуванням
+    }
+    //для правильного рядка створення
+    public static String formatTimezone(String input) {
+        if (input == null || !input.contains("/")) {
+            return input; // Повертаємо без змін, якщо формат неправильний
+        }
+
+        String[] parts = input.split("/");
+
+        if (parts.length != 2) {
+            return input; // Якщо не два слова, повертаємо як є
+        }
+
+        return capitalizeFirst(parts[0]) + "/" + capitalizeFirst(parts[1]);
+    }
+
+    // Метод для форматування окремого слова
+    private static String capitalizeFirst(String word) {
+        if (word.isEmpty()) {
+            return word;
+        }
+        return word.substring(0, 1).toUpperCase() + word.substring(1).toLowerCase();
     }
 
 

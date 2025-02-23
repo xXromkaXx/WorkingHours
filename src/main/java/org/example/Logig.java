@@ -136,7 +136,7 @@ public class Logig extends TelegramLongPollingBot {
 
     private enum State {
         START, reg, SavingName, AddWork, SavingWork, MAIN,ENTER_HOURS,SELECT_WORK_TO_VIEW,VIEW_WORK_HOURS,EDIT_WORK,MainMenuBackForLIST,MainMenuBackForAddWork,editingHours
-    ,reminderSetup,reminderHours,reminderMinutes
+    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE
     }
 
     private String selectedWork;
@@ -195,10 +195,11 @@ private Integer rHours=null;
                 } else {
                     currentState = State.MAIN;
                 }
-            }else if (messageText.startsWith("/settimezone ")) {
-                String timezone = messageText.substring(12).trim();
-                updateUserTimezone(chatId, timezone);
+            }else if (messageText.equals("/settimezone")) {
+                currentState = State.SET_TIMEZONE;
+                sendTimezoneKeyboard(chatId);
             }
+
 
 
             // Викликаємо обробку станів
@@ -610,8 +611,28 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                             break;
                     }
                     break;
+                case SET_TIMEZONE: String selectedTimezone = messageText.trim();
 
+                    // Якщо вибрано "Інший..."
+                    if (selectedTimezone.equals("🏳 Інший... (ввести вручну)")) {
+                        sendMessage(chatId, "✍ Введіть назву вашого часового поясу (наприклад: `Europe/Paris`):");
+                        return;
+                    }
 
+                    // Витягуємо лише назву часового поясу (без прапорця)
+                    selectedTimezone = selectedTimezone.replaceAll("^[^a-zA-Z]+", "").trim();
+
+                    // Перевіряємо, чи пояс валідний
+                    if (!ZoneId.getAvailableZoneIds().contains(selectedTimezone)) {
+                        sendMessage(chatId, "❌ Некоректний часовий пояс! Використовуйте формат `Europe/Kyiv`, `America/New_York` тощо.");
+                        return;
+                    }
+
+                    updateUserTimezone(chatId, selectedTimezone);
+                    sendMessage(chatId, "✅ Ваш часовий пояс оновлено на: `" + selectedTimezone + "`");
+
+                    currentState = State.MAIN; // Повертаємо в головне меню:
+break;
 
 
             }
@@ -1434,6 +1455,43 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
             sendMessage(chatId, "Помилка при оновленні часового поясу.");
         }
     }
+
+    private void sendTimezoneKeyboard(long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText("🌍 Виберіть свій часовий пояс:");
+
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
+
+        List<KeyboardRow> keyboardRows = new ArrayList<>();
+
+        // Рядки кнопок
+        keyboardRows.add(createRow("🇺🇦 Europe/Kyiv", "🇵🇱 Europe/Warsaw"));
+        keyboardRows.add(createRow("🇷🇺 Europe/Moscow", "🇹🇷 Europe/Istanbul"));
+        keyboardRows.add(createRow("🇺🇸 America/New_York", "🇩🇪 Europe/Berlin"));
+        keyboardRows.add(createRow("🏳 Інший... (ввести вручну)"));
+
+        keyboardMarkup.setKeyboard(keyboardRows);
+        message.setReplyMarkup(keyboardMarkup);
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    // Функція для швидкого створення рядка кнопок
+    private KeyboardRow createRow(String... buttons) {
+        KeyboardRow row = new KeyboardRow();
+        for (String button : buttons) {
+            row.add(new KeyboardButton(button));
+        }
+        return row;
+    }
+
+
     private String getUserTimezone(long chatId) {
         String query = "SELECT timezone FROM users WHERE chatid = ?";
         try (Connection conn = DatabaseConnection.getConnection();

@@ -94,7 +94,10 @@ public class Logig extends TelegramLongPollingBot {
 
     // Метод для відправки нагадування
     private void sendDailyReminder(long chatId) {
-        sendMessage(chatId, "Це ваше нагадування на сьогодні!");  // Повідомлення, яке надсилається користувачеві
+        String userName = getUserNameFromDatabase(chatId);  // Метод отримання імені
+        String message = ReminderMessageGenerator.getRandomMessage(userName);
+        sendMessage(chatId, message);
+
     }
 
     // Метод для оновлення часу нагадування користувача у базі даних та перепланування нагадування
@@ -1547,6 +1550,20 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
     }
 
 
+    private String getUserNameFromDatabase(long chatId) {
+        String query = "SELECT username FROM users WHERE chatid = ?";
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement pstmt = conn.prepareStatement(query)) {
+            pstmt.setLong(1, chatId);
+            ResultSet rs = pstmt.executeQuery();
+            if (rs.next()) {
+                return rs.getString("username");
+            }
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
+        return null;
+    }
 
 
 

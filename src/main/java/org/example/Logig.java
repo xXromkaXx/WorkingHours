@@ -280,10 +280,6 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     break;
 
                 case AddWork:
-                    if (!isValidState(State.MAIN)) {
-                        sendMessage(chatId, "⚠ Ви натиснули кнопку не в той момент! Будь ласка, завершіть попередню дію.");
-                        return;
-                    }
 
                     // Перевіряємо, чи користувач має хоча б одну роботу
                     if (getUserJobs(chatId).size() > 0) {

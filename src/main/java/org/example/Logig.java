@@ -140,8 +140,8 @@ public class Logig extends TelegramLongPollingBot {
 
 
     private enum State {
-        START, reg, SavingName, AddWork, SavingWork, MAIN,ENTER_HOURS,SELECT_WORK_TO_VIEW,VIEW_WORK_HOURS,EDIT_WORK,MainMenuBackForLIST,MainMenuBackForAddWork,editingHours
-    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE, CONFIRM_DELETEWORK
+        START, reg, SavingName, AddWork, SavingWork, MAIN,ENTER_HOURS,SELECT_WORK_TO_VIEW,VIEW_WORK_HOURS,EDIT_WORK,MainMenuBackForLIST,editingHours
+    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE, CONFIRM_DELETEWORK,WAIT_FOR_HOURS_AFTER_DATE
     }
 
     private String selectedWork;
@@ -183,6 +183,19 @@ private Integer rHours=null;
                 String workName = data[3];
                 long chatId = update.getCallbackQuery().getMessage().getChatId();
                 handleDaySelection(chatId, month, day, workName);
+            }
+           else if (data.equals("select_date")) {
+                long chatId = update.getMessage().getChatId();
+                sendCalendar(chatId); // Викликаємо метод для показу календаря
+            }
+           else if (data != null && data.toString().startsWith("date_selected:")) {
+                long chatId = update.getMessage().getChatId();
+                String selectedDate = data.toString().replace("date_selected:", "");
+                selectedDay = Integer.parseInt(selectedDate); // Зберігаємо вибраний день
+
+                sendMessage(chatId, "📆 Ви обрали " + selectedDate + " число. Введіть кількість годин:");
+                currentSubState = SubState.NONE; // Переходимо до введення годин
+
             }
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
@@ -343,7 +356,18 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     break;
 
 
+case WAIT_FOR_HOURS_AFTER_DATE:
+    if (!messageText.matches("\\d+")) {
+        sendMessage(chatId, "❌ Введіть тільки число годин (наприклад, 5).");
+        return;
+    }
 
+    int hours3 = Integer.parseInt(messageText);
+    addWorkHours2(chatId, selectedWork, selectedDay, hours3); // Викликаємо метод із передачею дня
+
+    sendMessage(chatId, "✅ Години збережено для " + selectedDay + " числа.");
+    currentSubState = SubState.NONE; // Повертаємося до звичайного режиму
+    break;
 
                 case reminderSetup:
 
@@ -1038,6 +1062,67 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
             logger.error("Помилка  {}", e.getMessage(), e);
         }
     }
+    private void addWorkHours2(Long chatId, String workName, int day, int hours) {
+        String selectSql = """
+        SELECT work_data FROM work_hours 
+        WHERE chatid = ? 
+        AND work_id = (SELECT work_id FROM work_types WHERE work_name = ?) 
+        AND month = ?
+    """;
+
+        String insertSql = """
+        INSERT INTO work_hours (chatid, work_id, month, work_data)
+        VALUES (?, (SELECT work_id FROM work_types WHERE work_name = ?), ?, ?::jsonb)
+    """;
+
+        String updateSql = """
+        UPDATE work_hours 
+        SET work_data = work_data || ?::jsonb
+        WHERE chatid = ? 
+        AND work_id = (SELECT work_id FROM work_types WHERE work_name = ?) 
+        AND month = ?
+    """;
+
+        int currentMonth = LocalDate.now().getMonthValue(); // Отримуємо поточний місяць
+
+        // Створюємо JSON для вибраного дня
+        String dayDataJson = "{\"" + day + "\": " + hours + "}";
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql);
+             PreparedStatement insertStmt = conn.prepareStatement(insertSql);
+             PreparedStatement updateStmt = conn.prepareStatement(updateSql)) {
+
+            // Перевіряємо, чи існує запис для цього місяця
+            selectStmt.setLong(1, chatId);
+            selectStmt.setString(2, workName);
+            selectStmt.setInt(3, currentMonth);
+
+            try (ResultSet rs = selectStmt.executeQuery()) {
+                if (rs.next()) {
+                    // Якщо запис існує, оновлюємо його
+                    updateStmt.setString(1, dayDataJson);
+                    updateStmt.setLong(2, chatId);
+                    updateStmt.setString(3, workName);
+                    updateStmt.setInt(4, currentMonth);
+                    updateStmt.executeUpdate();
+                } else {
+                    // Якщо запису немає, створюємо новий запис
+                    insertStmt.setLong(1, chatId);
+                    insertStmt.setString(2, workName);
+                    insertStmt.setInt(3, currentMonth);
+                    insertStmt.setString(4, dayDataJson);
+                    insertStmt.executeUpdate();
+                }
+            }
+
+            sendMessage(chatId, "✅ Години успішно додано для роботи: " + workName +
+                    " на " + day + " число місяця " + currentMonth);
+
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
+    }
 
     private void sendMessageWithBothKeyboards(Long chatId, String text) {
         SendMessage message = new SendMessage();
@@ -1060,11 +1145,25 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
             editMarkup.setMessageId(messageId);
             editMarkup.setReplyMarkup(createSelectDateKeyboard());
 
-            execute(editMarkup); // Оновлюємо повідомлення, додаючи інлайн-кнопки
+            execute(editMarkup);// додаючи інлайн-кнопки
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
+
+    private void sendCalendar(Long chatId) {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText("📆 Виберіть дату:");
+        message.setReplyMarkup(createCalendarKeyboard());
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
 
     private InlineKeyboardMarkup createSelectDateKeyboard() {
         InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
@@ -1079,6 +1178,33 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
         return keyboard;
     }
 
+    private InlineKeyboardMarkup createCalendarKeyboard() {
+        InlineKeyboardMarkup inlineKeyboardMarkup = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        YearMonth currentMonth = YearMonth.now();
+        int daysInMonth = currentMonth.lengthOfMonth();
+
+        List<InlineKeyboardButton> row = new ArrayList<>();
+        for (int day = 1; day <= daysInMonth; day++) {
+            InlineKeyboardButton button = new InlineKeyboardButton();
+            button.setText(String.valueOf(day));
+            button.setCallbackData("date_selected:" + day);
+
+            row.add(button);
+
+            if (row.size() == 7) { // Новий рядок кожні 7 днів
+                rows.add(new ArrayList<>(row));
+                row.clear();
+            }
+        }
+        if (!row.isEmpty()) {
+            rows.add(row);
+        }
+
+        inlineKeyboardMarkup.setKeyboard(rows);
+        return inlineKeyboardMarkup;
+    }
 
     private ReplyKeyboardMarkup createMainMenuBackKeyboard() {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();

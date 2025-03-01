@@ -2,6 +2,7 @@ package org.example;
 
 import java.time.*;
 import java.util.Map;
+import java.util.TreeMap;
 import java.util.concurrent.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
@@ -281,6 +282,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
                 case AddWork:
 
+
                     // Перевіряємо, чи користувач має хоча б одну роботу
                     if (getUserJobs(chatId).size() > 0) {
                         // Користувач має принаймні одну роботу, тому відображаємо додаткову клавіатуру
@@ -307,6 +309,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                         if (messageText.equals("Головне меню") || messageText.equals("Назад")) {
                         currentState = State.MAIN;
                         menuMain(chatId, "Оберіть дію");  // Показуємо головне меню
+                            return;
                     }
                         }
                     if (formatString(messageText)) {
@@ -528,7 +531,6 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     try {
                         int hours = Integer.parseInt(messageText); // Вводимо кількість годин
                         addWorkHours(chatId, selectedWork, hours);
-                        sendMessage(chatId, "Години успішно додано для роботи: " + selectedWork);
                         currentState = State.MAIN;
                         handleState(update,chatId);
                     } catch (NumberFormatException e) {
@@ -873,27 +875,30 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
             selectStmt.setString(2, workName);
             selectStmt.setInt(3, currentMonth);
 
-            ResultSet rs = selectStmt.executeQuery();
-
-            if (rs.next()) {
-                // Якщо запис існує, оновлюємо його, додаючи новий день у JSON
-                updateStmt.setString(1, dayDataJson);
-                updateStmt.setLong(2, chatId);
-                updateStmt.setString(3, workName);
-                updateStmt.setInt(4, currentMonth);
-                updateStmt.executeUpdate();
-            } else {
-                // Якщо запису немає, створюємо новий запис з поточним місяцем і днями
-                insertStmt.setLong(1, chatId);
-                insertStmt.setString(2, workName);
-                insertStmt.setInt(3, currentMonth);
-                insertStmt.setString(4, dayDataJson);
-                insertStmt.executeUpdate();
+            try (ResultSet rs = selectStmt.executeQuery()) {
+                if (rs.next()) {
+                    // Якщо запис існує, оновлюємо його, додаючи новий день у JSON
+                    updateStmt.setString(1, dayDataJson);
+                    updateStmt.setLong(2, chatId);
+                    updateStmt.setString(3, workName);
+                    updateStmt.setInt(4, currentMonth);
+                    updateStmt.executeUpdate();
+                } else {
+                    // Якщо запису немає, створюємо новий запис з поточним місяцем і днями
+                    insertStmt.setLong(1, chatId);
+                    insertStmt.setString(2, workName);
+                    insertStmt.setInt(3, currentMonth);
+                    insertStmt.setString(4, dayDataJson);
+                    insertStmt.executeUpdate();
+                }
             }
 
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+            sendMessage(chatId, "Години успішно додано для роботи: " + workName +
+                    " для дня " + dayOfMonth + " місяця " + currentMonth);
+
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
     }
 
@@ -1146,17 +1151,16 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
         try {
             JSONObject jsonObject = new JSONObject(workDataJson);
+            Map<Integer, Integer> sortedWorkData = new TreeMap<>();
 
-            // Отримуємо та сортуємо ключі (дні)
-            List<Integer> sortedDays = jsonObject.keySet().stream()
-                    .map(Integer::parseInt)
-                    .sorted()
-                    .toList();
+            // Додаємо всі дні та їхні години у TreeMap (він сортує їх автоматично)
+            for (String key : jsonObject.keySet()) {
+                sortedWorkData.put(Integer.parseInt(key), jsonObject.getInt(key));
+            }
 
-            // Додаємо відсортовані дні до результату
-            for (Integer day : sortedDays) {
-                int hours = jsonObject.getInt(day.toString());
-                hoursData.add("📅 *" + day + "* | ⏳ *" + hours + " год*");
+            // Формуємо результат у правильному порядку
+            for (Map.Entry<Integer, Integer> entry : sortedWorkData.entrySet()) {
+                hoursData.add("📅 День: " + entry.getKey() + " | ⏳ Години: " + entry.getValue());
             }
         } catch (Exception e) {
             e.printStackTrace();
@@ -1164,6 +1168,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
         return hoursData;
     }
+
 
 
     public boolean deleteJob(Long chatId, String workName) {

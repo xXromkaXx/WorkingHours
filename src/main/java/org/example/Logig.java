@@ -1,15 +1,12 @@
 package org.example;
 
 import java.time.*;
-import java.util.Map;
-import java.util.TreeMap;
+import java.util.*;
 import java.util.concurrent.*;
 import java.sql.Connection;
 import java.sql.PreparedStatement;
 import java.sql.SQLException;
 import java.sql.ResultSet;
-import java.util.ArrayList;
-import java.util.List;
 import java.time.format.DateTimeFormatter;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ScheduledExecutorService;
@@ -18,6 +15,7 @@ import java.util.concurrent.TimeUnit;
 import org.json.JSONObject;
 
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
+import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
@@ -28,6 +26,9 @@ import org.telegram.telegrambots.meta.api.objects.replykeyboard.InlineKeyboardMa
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.InlineKeyboardButton;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import org.telegram.telegrambots.meta.api.methods.updatingmessages.EditMessageReplyMarkup;
+
+
 public class Logig extends TelegramLongPollingBot {
 
     private final ScheduledExecutorService scheduler = Executors.newScheduledThreadPool(1);
@@ -481,7 +482,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     switch (messageText) {
                         case "Додати години":
                             currentState = State.ENTER_HOURS;
-                            sendMessageWithKeyboard(chatId, "Введіть кількість годин:", createMainMenuBackKeyboard());
+                            sendMessageWithBothKeyboards(chatId, "Введіть кількість годин:");
                             break;
 
                         case "Розрахувати кількість год/м":
@@ -1038,10 +1039,53 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
         }
     }
 
+    private void sendMessageWithBothKeyboards(Long chatId, String text) {
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId)); // виправлення типу
+        message.setText(text);
+        message.setParseMode("Markdown");
+
+        // Додаємо основну клавіатуру
+        ReplyKeyboardMarkup mainKeyboard = createMainMenuBackKeyboard();
+        message.setReplyMarkup(mainKeyboard);
+
+        try {
+            // Відправляємо повідомлення
+            Message sentMessage = execute(message); // Тепер зберігаємо Message, а не SendMessage
+            int messageId = sentMessage.getMessageId(); // Отримуємо ID повідомлення
+
+            // Додаємо inline-клавіатуру (для кнопки "Вибрати дату")
+            EditMessageReplyMarkup editMarkup = new EditMessageReplyMarkup();
+            editMarkup.setChatId(String.valueOf(chatId)); // виправлення типу
+            editMarkup.setMessageId(messageId);
+            editMarkup.setReplyMarkup(createSelectDateKeyboard());
+
+            execute(editMarkup); // Оновлюємо повідомлення, додаючи інлайн-кнопки
+        } catch (TelegramApiException e) {
+            e.printStackTrace();
+        }
+    }
+
+    private InlineKeyboardMarkup createSelectDateKeyboard() {
+        InlineKeyboardMarkup keyboard = new InlineKeyboardMarkup();
+        List<List<InlineKeyboardButton>> rows = new ArrayList<>();
+
+        InlineKeyboardButton selectDateButton = new InlineKeyboardButton("📅 Вибрати дату");
+        selectDateButton.setCallbackData("select_date");
+
+        rows.add(Collections.singletonList(selectDateButton));
+        keyboard.setKeyboard(rows);
+
+        return keyboard;
+    }
+
+
     private ReplyKeyboardMarkup createMainMenuBackKeyboard() {
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);
         keyboardMarkup.setOneTimeKeyboard(true);
+
+
 
         KeyboardRow mainRow = new KeyboardRow();
         mainRow.add(new KeyboardButton("Головне меню"));

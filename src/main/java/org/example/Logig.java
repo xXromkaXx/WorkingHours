@@ -527,7 +527,6 @@ public class Logig extends TelegramLongPollingBot {
 //                            currentState = State.MAIN;
 //                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
                                 currentState = State.CONFIRM_DELETEWORK;
-                               sendMessage(chatId, "⚠ Ви впевнені, що хочете видалити роботу \"" + selectedWork + "\"?");
                                 sendDeleteConfirmation(chatId, selectedWork);
 
                                 return;
@@ -1304,6 +1303,7 @@ public class Logig extends TelegramLongPollingBot {
         // Потім окремо відправляємо клавіатуру
         SendMessage keyboardMessage = new SendMessage();
         keyboardMessage.setChatId(String.valueOf(chatId));
+        keyboardMessage.setText("⚠ Ви впевнені, що хочете видалити роботу \"" + workName + "\"?"); // Додаємо текст
 
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);

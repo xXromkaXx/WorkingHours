@@ -1129,30 +1129,34 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 
     private void sendMessageWithBothKeyboards(Long chatId, String text) {
         SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(chatId)); // виправлення типу
+        message.setChatId(String.valueOf(chatId));
         message.setText(text);
         message.setParseMode("Markdown");
 
-        // Додаємо основну клавіатуру
+        // Додаємо основну клавіатуру (Головне меню / Назад)
         ReplyKeyboardMarkup mainKeyboard = createMainMenuBackKeyboard();
         message.setReplyMarkup(mainKeyboard);
 
         try {
-            // Відправляємо повідомлення
-            Message sentMessage = execute(message); // Тепер зберігаємо Message, а не SendMessage
-            int messageId = sentMessage.getMessageId(); // Отримуємо ID повідомлення
+            // Відправляємо нове повідомлення
+            Message sentMessage = execute(message);
+            int messageId = sentMessage.getMessageId();
 
-            // Додаємо inline-клавіатуру (для кнопки "Вибрати дату")
-            EditMessageReplyMarkup editMarkup = new EditMessageReplyMarkup();
-            editMarkup.setChatId(String.valueOf(chatId)); // виправлення типу
-            editMarkup.setMessageId(messageId);
-            editMarkup.setReplyMarkup(createSelectDateKeyboard());
+            // Створюємо inline-кнопку "📅 Вибрати день"
+            InlineKeyboardMarkup inlineKeyboard = createSelectDateKeyboard();
 
-            execute(editMarkup);// додаючи інлайн-кнопки
+            // Відправляємо inline-кнопку окремим повідомленням
+            SendMessage inlineMessage = new SendMessage();
+            inlineMessage.setChatId(String.valueOf(chatId));
+            inlineMessage.setText("📅 Натисніть, щоб вибрати день:");
+            inlineMessage.setReplyMarkup(inlineKeyboard);
+            execute(inlineMessage);
+
         } catch (TelegramApiException e) {
             e.printStackTrace();
         }
     }
+
 
     private void sendCalendar(Long chatId) {
         SendMessage message = new SendMessage();

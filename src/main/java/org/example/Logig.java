@@ -524,6 +524,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 //                            currentState = State.MAIN;
 //                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
                                 sendDeleteConfirmation(chatId, selectedWork);
+                                currentState = State.CONFIRM_DELETEWORK;
                             }else {
                                 sendMessage(chatId, "❌ Помилка:  роботу не видалено.");
                             }
@@ -582,7 +583,10 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);
                     }
-                    else  {sendMessage(chatId, "❌ Невідома команда. Спробуйте ще раз.");}
+                    else  {sendMessage(chatId, "❌ Невідома команда. Спробуйте ще раз.");
+                        currentState = State.EDIT_WORK;
+                        showSettingUpWorkMenu(chatId);  // Повертаємо користувача до меню редагування роботи
+                        return;}
 
                     break;
 
@@ -1281,7 +1285,7 @@ currentState=State.MAIN ;
 
 
     private void sendDeleteConfirmation(long chatId, String workName) {
-        currentState = State.CONFIRM_DELETEWORK;
+
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText("⚠ Ви впевнені, що хочете видалити роботу \"" + workName + "\"?");

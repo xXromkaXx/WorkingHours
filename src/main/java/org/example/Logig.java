@@ -14,10 +14,12 @@ import java.util.concurrent.TimeUnit;
 
 import org.json.JSONObject;
 
+import org.telegram.telegrambots.meta.api.methods.ParseMode;
 import org.telegram.telegrambots.meta.api.methods.send.SendMessage;
 import org.telegram.telegrambots.meta.api.objects.Message;
 import org.telegram.telegrambots.meta.api.objects.Update;
 import org.telegram.telegrambots.bots.TelegramLongPollingBot;
+import org.telegram.telegrambots.meta.api.objects.replykeyboard.ForceReplyKeyboard;
 import org.telegram.telegrambots.meta.exceptions.TelegramApiException;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.ReplyKeyboardMarkup;
 import org.telegram.telegrambots.meta.api.objects.replykeyboard.buttons.KeyboardButton;
@@ -1023,6 +1025,66 @@ public class Logig extends TelegramLongPollingBot {
     }
 
 
+    private void addWorkHoursAfterReminder(Long chatId) {
+        String selectSql = """
+        SELECT wt.work_name 
+        FROM work_types wt 
+        JOIN work_hours wh ON wt.work_id = wh.work_id 
+        WHERE wh.chatid = ? 
+        GROUP BY wt.work_name 
+        ORDER BY COUNT(wh.work_data) DESC 
+        LIMIT 1
+    """;
+
+        String singleWorkSql = """
+        SELECT work_name FROM work_types WHERE chatid = ?
+    """;
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement selectStmt = conn.prepareStatement(selectSql);
+             PreparedStatement singleWorkStmt = conn.prepareStatement(singleWorkSql)) {
+
+            singleWorkStmt.setLong(1, chatId);
+            try (ResultSet rs = singleWorkStmt.executeQuery()) {
+                if (rs.next() && !rs.next()) { // Якщо є тільки один запис
+                    String workName = rs.getString("work_name");
+                    sendMessage(chatId, "📌 Автоматично вибрано роботу: " + workName);
+                    requestHoursInput(chatId, workName);
+                    return;
+                }
+            }
+
+            // Якщо робіт більше однієї, вибираємо найчастішу
+            selectStmt.setLong(1, chatId);
+            try (ResultSet rs = selectStmt.executeQuery()) {
+                if (rs.next()) {
+                    String workName = rs.getString("work_name");
+                    sendMessage(chatId, "📌 Автоматично вибрано найчастішу роботу: " + workName);
+                    requestHoursInput(chatId, workName);
+                } else {
+                    sendMessage(chatId, "⚠ У вас ще немає збережених робіт.");
+                }
+            }
+
+        } catch (SQLException e) {
+            logger.error("Помилка SQL при виборі роботи після нагадування: {}", e.getMessage(), e);
+        }
+    }
+    private void requestHoursInput(Long chatId, String workName) {
+        currentState = State.ENTER_HOURS; // Встановлюємо стан введення годин
+        selectedWork = workName; // Зберігаємо вибрану роботу для введення
+
+        SendMessage message = new SendMessage();
+        message.setChatId(String.valueOf(chatId));
+        message.setText("⏳ Введіть кількість годин для \"" + workName + "\":");
+        message.setReplyMarkup(new ForceReplyKeyboard());
+
+        try {
+            execute(message);
+        } catch (TelegramApiException e) {
+            logger.error("Помилка відправки повідомлення: {}", e.getMessage(), e);
+        }
+    }
 
 
 
@@ -1304,7 +1366,7 @@ public class Logig extends TelegramLongPollingBot {
         SendMessage keyboardMessage = new SendMessage();
         keyboardMessage.setChatId(String.valueOf(chatId));
         keyboardMessage.setText("⚠ Ви впевнені, що хочете видалити роботу \"" + workName + "\"?"); // Додаємо текст
-
+        keyboardMessage.setParseMode(ParseMode.MARKDOWN);
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);
         keyboardMarkup.setOneTimeKeyboard(true);

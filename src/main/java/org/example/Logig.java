@@ -584,12 +584,12 @@ public class Logig extends TelegramLongPollingBot {
                     if (!update.hasMessage() || !update.getMessage().hasText()) {
                         return; // Чекаємо нового введення
                     }
-                    if (messageText.trim().equals("✅ Так, видалити")) {
+                    if (messageText.trim().equals("Так, видалити")) {
                         deleteJob(chatId, selectedWork);
                         sendMessage(chatId, "✅ Роботу \"" + selectedWork + "\" успішно видалено.");
                         currentState = State.MAIN;
                         menuMain(chatId, "Оберіть наступну дію:");
-                    } else if (messageText.trim().equals("❌ Скасувати")) {
+                    } else if (messageText.trim().equals("Скасувати")) {
                         sendMessage(chatId, "❌ Видалення скасовано.");
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);
@@ -1299,27 +1299,30 @@ public class Logig extends TelegramLongPollingBot {
 
     private void sendDeleteConfirmation(long chatId, String workName) {
 
-        SendMessage message = new SendMessage();
-        message.setChatId(String.valueOf(chatId));
 
+
+        // Потім окремо відправляємо клавіатуру
+        SendMessage keyboardMessage = new SendMessage();
+        keyboardMessage.setChatId(String.valueOf(chatId));
 
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);
         keyboardMarkup.setOneTimeKeyboard(true);
+
         KeyboardRow confirmRow = new KeyboardRow();
-        confirmRow.add(new KeyboardButton("✅ Так, видалити"));
-        confirmRow.add(new KeyboardButton("❌ Скасувати"));
+        confirmRow.add(new KeyboardButton("Так, видалити"));
+        confirmRow.add(new KeyboardButton("Скасувати"));
 
         keyboardMarkup.setKeyboard(List.of(confirmRow));
-
-        message.setReplyMarkup(keyboardMarkup);
+        keyboardMessage.setReplyMarkup(keyboardMarkup);
 
         try {
-            execute(message);
+            execute(keyboardMessage);
         } catch (TelegramApiException e) {
-
+            sendMessage(chatId, "❌ Помилка при відправці клавіатури: " + e.getMessage());
         }
     }
+
 
 
 

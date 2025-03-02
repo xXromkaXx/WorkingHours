@@ -572,12 +572,12 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                     break;
 
                 case CONFIRM_DELETEWORK:
-                    if (messageText.equals("✅ Так, видалити")) {
+                    if (messageText.trim().contains("✅ Так, видалити")) {
                         deleteJob(chatId, selectedWork);
                         sendMessage(chatId, "✅ Роботу \"" + selectedWork + "\" успішно видалено.");
                         currentState = State.MAIN;
                         menuMain(chatId, "Оберіть наступну дію:");
-                    } else if (messageText.equals("❌ Скасувати")) {
+                    } else if (messageText.trim().contains("❌ Скасувати")) {
                         sendMessage(chatId, "❌ Видалення скасовано.");
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);
@@ -1288,7 +1288,7 @@ currentState=State.MAIN ;
 
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);
-
+        keyboardMarkup.setOneTimeKeyboard(true);
         KeyboardRow confirmRow = new KeyboardRow();
         confirmRow.add(new KeyboardButton("✅ Так, видалити"));
         confirmRow.add(new KeyboardButton("❌ Скасувати"));

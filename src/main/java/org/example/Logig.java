@@ -526,8 +526,10 @@ public class Logig extends TelegramLongPollingBot {
 //                            deleteJob(chatId, selectedWork);
 //                            currentState = State.MAIN;
 //                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
-                                sendDeleteConfirmation(chatId, selectedWork);
                                 currentState = State.CONFIRM_DELETEWORK;
+                               sendMessage(chatId, "⚠ Ви впевнені, що хочете видалити роботу \"" + selectedWork + "\"?");
+                                sendDeleteConfirmation(chatId, selectedWork);
+
                                 return;
                             }else {
                                 sendMessage(chatId, "❌ Помилка:  роботу не видалено.");
@@ -1299,7 +1301,7 @@ public class Logig extends TelegramLongPollingBot {
 
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
-        message.setText("⚠ Ви впевнені, що хочете видалити роботу \"" + workName + "\"?");
+
 
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
         keyboardMarkup.setResizeKeyboard(true);
@@ -1834,9 +1836,7 @@ public class Logig extends TelegramLongPollingBot {
 
 
 
-    private boolean isValidState(State expectedState) {
-        return currentState == expectedState;
-    }
+
 
 
 

@@ -140,7 +140,7 @@ public class Logig extends TelegramLongPollingBot {
 
     private enum State {
         START, reg, SavingName, AddWork, SavingWork, MAIN,ENTER_HOURS,SELECT_WORK_TO_VIEW,VIEW_WORK_HOURS,EDIT_WORK,MainMenuBackForLIST,editingHours
-    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE, CONFIRM_DELETEWORK
+        ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE, CONFIRM_DELETEWORK
         ,WAIT_FOR_HOURS_AFTER_DATE
     }
 
@@ -154,7 +154,7 @@ public class Logig extends TelegramLongPollingBot {
     private String userName;
     private Integer selectedMonth = null;
     private Integer selectedDay = null;
-private Integer rHours=null;
+    private Integer rHours=null;
 
 
     private String capitalizeFirstLetter(String input) {
@@ -178,7 +178,7 @@ private Integer rHours=null;
                 long chatId = update.getCallbackQuery().getMessage().getChatId();
                 handleMonthSelection(chatId, month, workName);
             }
-           else if (data[0].equals("edit_day")) {
+            else if (data[0].equals("edit_day")) {
                 int month = Integer.parseInt(data[1]);
                 int day = Integer.parseInt(data[2]);
                 String workName = data[3];
@@ -240,9 +240,9 @@ private Integer rHours=null;
         try {
             execute(message);
 
-       } catch (TelegramApiException e) {
-    logger.error("Помилка під час виконання команди Telegram API: {}", e.getMessage(), e);
-}
+        } catch (TelegramApiException e) {
+            logger.error("Помилка під час виконання команди Telegram API: {}", e.getMessage(), e);
+        }
 
     }
 
@@ -273,7 +273,7 @@ private Integer rHours=null;
     private void handleState(Update update, long chatId) {
         if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
-messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1).toLowerCase();
+            messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1).toLowerCase();
 
 
             switch (currentState) {
@@ -325,11 +325,11 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                 case SavingWork:
                     if (getUserJobs(chatId).size() >= 1){
                         if (messageText.equals("Головне меню") || messageText.equals("Назад")) {
-                        currentState = State.MAIN;
-                        menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
+                            currentState = State.MAIN;
+                            menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
                             return;
-                    }
                         }
+                    }
                     if (formatString(messageText)) {
                         // Спочатку перевіряємо, чи існує робота для користувача
                         if (workExists(chatId, messageText)) {
@@ -360,21 +360,21 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     break;
 
 
-case WAIT_FOR_HOURS_AFTER_DATE:
+                case WAIT_FOR_HOURS_AFTER_DATE:
 
-    if (!messageText.matches("\\d+")) {
-        sendMessage(chatId, "❌ Введіть тільки число годин (наприклад, 5).");
-        return;
-    }
+                    if (!messageText.matches("\\d+")) {
+                        sendMessage(chatId, "❌ Введіть тільки число годин (наприклад, 5).");
+                        return;
+                    }
 
-    int hours3 = Integer.parseInt(messageText);
-    addWorkHours2(chatId, selectedWork, selectedDay, hours3);
+                    int hours3 = Integer.parseInt(messageText);
+                    addWorkHours2(chatId, selectedWork, selectedDay, hours3);
 
-    currentState=State.MAIN;
-    menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n");
+                    currentState=State.MAIN;
+                    menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n");
 
 
-    break;
+                    break;
 
                 case reminderSetup:
 
@@ -386,20 +386,20 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 
                         currentSubState = SubState.WAIT_FOR_HOURS_R;
                         sendMessageWithKeyboard(chatId,"Введіть годину для надсилання нагадування (0-23):",createMainMenuDOWNLOADKeyboard()) ;
-                         return;
-                    } if (messageText.equals("Видалити нагадування")) {
-                        deleteReminder(chatId);
-                        currentState = State.MAIN;
-                        menuMain(chatId, "Нагадування видалено. Оберіть дію:");
-
-                   return;
-                    } if (messageText.equals("Назад")) {
-                        currentState = State.MAIN;
-                        menuMain(chatId, "Оберіть дію:");
                         return;
-                    }
-                        sendMessage(chatId, "Будь ласка, оберіть одну з дій:");
-                        break;
+                    } if (messageText.equals("Видалити нагадування")) {
+                    deleteReminder(chatId);
+                    currentState = State.MAIN;
+                    menuMain(chatId, "Нагадування видалено. Оберіть дію:");
+
+                    return;
+                } if (messageText.equals("Назад")) {
+                    currentState = State.MAIN;
+                    menuMain(chatId, "Оберіть дію:");
+                    return;
+                }
+                    sendMessage(chatId, "Будь ласка, оберіть одну з дій:");
+                    break;
 
 
 
@@ -485,19 +485,21 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                         showSettingUpWorkMenu(chatId);
                         return;
                     } if (messageText.equals("Додати роботу")) {
-                        currentState = State.AddWork;
-                        handleState(update, chatId);
-                        return;  // ВАЖЛИВО! Зупиняє виконання handleState(), щоб не пішло далі!
+                    currentState = State.AddWork;
+                    handleState(update, chatId);
+                    return;  // ВАЖЛИВО! Зупиняє виконання handleState(), щоб не пішло далі!
 
-                    } if (messageText.equals("Нагадування")) {
+                } if (messageText.equals("Нагадування")) {
 
-                        currentState = State.reminderSetup;
+                    currentState = State.reminderSetup;
                     showReminders(chatId);
-                        sendMessageWithKeyboard(chatId, "Виберіть дію для нагадування:", createReminderKeyboard());
-                        return;  // ВАЖЛИВО! Зупиняє виконання handleState(), щоб не пішло далі!
+                    sendMessageWithKeyboard(chatId, "Виберіть дію для нагадування:", createReminderKeyboard());
+                    return;  // ВАЖЛИВО! Зупиняє виконання handleState(), щоб не пішло далі!
 
-                    }
-                     return;
+                }
+                    menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n");
+
+                    return;
 
 
 
@@ -575,6 +577,8 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                     break;
 
                 case CONFIRM_DELETEWORK:
+                    sendMessage(chatId, "DEBUG: CURRENT STATE: " + currentState + " | MESSAGE: " + messageText);
+
                     if (!update.hasMessage() || !update.getMessage().hasText()) {
                         return; // Чекаємо нового введення
                     }
@@ -589,6 +593,8 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                         showSettingUpWorkMenu(chatId);
                     }
                     else  {sendMessage(chatId, "❌ Невідома команда. Спробуйте ще раз.");
+                        sendMessage(chatId, "DEBUG: CURRENT STATE: " + currentState + " | MESSAGE: " + messageText);
+
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);  // Повертаємо користувача до меню редагування роботи
                         return;}
@@ -598,9 +604,9 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 
                 case SELECT_WORK_TO_VIEW:
 
-                        currentState = State.VIEW_WORK_HOURS;
-                        handleState(update, chatId);
-                   break;
+                    currentState = State.VIEW_WORK_HOURS;
+                    handleState(update, chatId);
+                    break;
 
                 case VIEW_WORK_HOURS:
                     List<String> hoursData = getWorkHoursData(chatId, selectedWork);
@@ -753,9 +759,9 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                     jobs.add(resultSet.getString("work_name"));
                 }
             }
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
 
         return jobs;
@@ -774,9 +780,9 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                 return resultSet.getInt(1) > 0; // Якщо кількість більша за 0, користувач існує
             }
 
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
 
         return false;
@@ -813,7 +819,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
             ON CONFLICT (chatid, work_name) DO NOTHING
             """;
 
-            String insertWorkHoursSql = """
+        String insertWorkHoursSql = """
             INSERT INTO work_hours (chatid, work_id, month, work_data)
             SELECT ?, wt.work_id, ?, '{}'
             FROM work_types wt
@@ -843,9 +849,9 @@ case WAIT_FOR_HOURS_AFTER_DATE:
             }
 
 
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
 
 
@@ -866,9 +872,9 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 
             ResultSet rs = pstmt.executeQuery();
             return rs.next(); // Повертає true, якщо запис існує
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
         return false;
     }
@@ -1039,9 +1045,9 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                 jobNames.add(resultSet.getString("work_name"));
             }
 
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
 
         return jobNames;
@@ -1134,7 +1140,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                     insertStmt.executeUpdate();
                 }
             }
-currentState=State.MAIN ;
+            currentState=State.MAIN ;
             sendMessage(chatId, "✅ Години успішно додано для роботи: " + workName +
                     " на " + day + " число місяця " + currentMonth);
 
@@ -1334,9 +1340,9 @@ currentState=State.MAIN ;
                 String workDataJson = rs.getString("work_data");
                 hoursData = parseWorkData(workDataJson);  // Розпарсимо JSON-дані
             }
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
         return hoursData;
     }
@@ -1529,9 +1535,9 @@ currentState=State.MAIN ;
                     hoursData.add("📅 День: " + day + " | ⏳ Години: " + hours);
                 }
             }
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
         return hoursData;
     }
@@ -1577,7 +1583,7 @@ currentState=State.MAIN ;
             String dayDO = parts[0].replaceAll("\\D+", ""); // Видаляємо все, окрім чисел
             String hours = parts.length > 1 ? parts[1] : "0";
             // Перевіряємо, чи в числі більше або дорівнює 100
-           String day= splitTime(dayDO);
+            String day= splitTime(dayDO);
             InlineKeyboardButton button = new InlineKeyboardButton();
             button.setText("День " + day + " (" +hours + " год)");
 
@@ -1623,9 +1629,9 @@ currentState=State.MAIN ;
                 JSONObject jsonObject = new JSONObject(rs.getString("work_data"));
                 return jsonObject.optInt(String.valueOf(day), 0);
             }
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
         return 0;
     }
@@ -1656,45 +1662,45 @@ currentState=State.MAIN ;
                 JSONObject jsonObject = new JSONObject(workDataJson);
                 for (String key : jsonObject.keySet()) {
 
-                        // Перетворюємо ключ у число (день)
-                        int day = Integer.parseInt(key);
-                        // Отримуємо значення (кількість годин)
-                        int hours = jsonObject.getInt(key);
+                    // Перетворюємо ключ у число (день)
+                    int day = Integer.parseInt(key);
+                    // Отримуємо значення (кількість годин)
+                    int hours = jsonObject.getInt(key);
 
-                        // Додаємо коректний вивід
-                        hoursData.add(" " + day + " " + hours);
+                    // Додаємо коректний вивід
+                    hoursData.add(" " + day + " " + hours);
 
-                        System.out.println(" " + day + " " + hours);
+                    System.out.println(" " + day + " " + hours);
 
                 }
             }
-       } catch (SQLException e) {
-    logger.error("Помилка SQL: {}", e.getMessage(), e);
-}
+        } catch (SQLException e) {
+            logger.error("Помилка SQL: {}", e.getMessage(), e);
+        }
 
         return hoursData;
     }
 
-        public static String splitTime(String day2) {
-            int day = Integer.parseInt(day2);
+    public static String splitTime(String day2) {
+        int day = Integer.parseInt(day2);
         String result = "";
 
-            // Перевірка, чи число має 4 цифри
-            if (day >= 1000) {
-                int days = day / 100; // Перші дві цифри — це дні
+        // Перевірка, чи число має 4 цифри
+        if (day >= 1000) {
+            int days = day / 100; // Перші дві цифри — це дні
 
-                result = days+"" ;
-            }
-            // Якщо число має 3 цифри
-            else if (day >= 100) {
-                int days = day / 100; // Перша цифра — це дні
-
-                result = days+"" ;
-            }
-
-
-            return result;
+            result = days+"" ;
         }
+        // Якщо число має 3 цифри
+        else if (day >= 100) {
+            int days = day / 100; // Перша цифра — це дні
+
+            result = days+"" ;
+        }
+
+
+        return result;
+    }
 
 
 

@@ -326,7 +326,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                     if (getUserJobs(chatId).size() >= 1){
                         if (messageText.equals("Головне меню") || messageText.equals("Назад")) {
                         currentState = State.MAIN;
-                        menuMain(chatId, "Оберіть дію");  // Показуємо головне меню
+                        menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
                             return;
                     }
                         }
@@ -340,7 +340,7 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
                         }
                         else  if (messageText.equals("Головне меню") || messageText.equals("Назад")) {
                             currentState = State.MAIN;
-                            menuMain(chatId, "Оберіть дію");  // Показуємо головне меню
+                            menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
 
                         }
                         else {
@@ -370,6 +370,8 @@ case WAIT_FOR_HOURS_AFTER_DATE:
     int hours3 = Integer.parseInt(messageText);
     addWorkHours2(chatId, selectedWork, selectedDay, hours3);
 
+    currentState=State.MAIN;
+    menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n");
 
 
     break;
@@ -405,7 +407,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 
                     if (messageText.equals("Головне меню")) {
                         currentState = State.MAIN;
-                        menuMain(chatId, "Оберіть дію");  // Показуємо головне меню
+                        menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
                         return;
                     } else if (messageText.equals("Скасувати")) {
                         currentState = State.reminderSetup;
@@ -440,7 +442,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                 case reminderMinutes:
                     if (messageText.equals("Головне меню")) {
                         currentState = State.MAIN;
-                        menuMain(chatId, "Оберіть дію");  // Показуємо головне меню
+                        menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
                         return;
                     } else if (messageText.equals("Скасувати")) {
                         currentState = State.reminderSetup;
@@ -495,8 +497,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                         return;  // ВАЖЛИВО! Зупиняє виконання handleState(), щоб не пішло далі!
 
                     }
-                    menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n");
-            return;
+                     return;
 
 
 
@@ -574,12 +575,15 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                     break;
 
                 case CONFIRM_DELETEWORK:
-                    if (messageText.trim().contains("✅ Так, видалити")) {
+                    if (!update.hasMessage() || !update.getMessage().hasText()) {
+                        return; // Чекаємо нового введення
+                    }
+                    if (messageText.trim().equals("✅ Так, видалити")) {
                         deleteJob(chatId, selectedWork);
                         sendMessage(chatId, "✅ Роботу \"" + selectedWork + "\" успішно видалено.");
                         currentState = State.MAIN;
                         menuMain(chatId, "Оберіть наступну дію:");
-                    } else if (messageText.trim().contains("❌ Скасувати")) {
+                    } else if (messageText.trim().equals("❌ Скасувати")) {
                         sendMessage(chatId, "❌ Видалення скасовано.");
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);
@@ -615,7 +619,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                 case MainMenuBackForLIST:
                     if (messageText.equals("Головне меню")) {
                         currentState = State.MAIN;
-                        menuMain(chatId, "Оберіть дію");  // Показуємо головне меню
+                        menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
                     } else if (messageText.equals("Назад")) {
                         // Повертаємося до меню коригування обраної роботи
                         currentState = State.EDIT_WORK;

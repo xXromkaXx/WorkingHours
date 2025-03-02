@@ -185,19 +185,21 @@ private Integer rHours=null;
                 long chatId = update.getCallbackQuery().getMessage().getChatId();
                 handleDaySelection(chatId, month, day, workName);
             }
-           else if (data.equals("select_date")) {
-                long chatId = update.getMessage().getChatId();
+            else if (data[0].equals("select_date")) { // Перевіряємо перший елемент масиву
+                long chatId = update.getCallbackQuery().getMessage().getChatId(); // Отримуємо chatId з callback
                 sendCalendar(chatId); // Викликаємо метод для показу календаря
             }
-            else if (data != null && data.toString().startsWith("date_selected:")) {
-                long chatId = update.getCallbackQuery().getMessage().getChatId(); // Виправлено!
 
-                String selectedDate = data.toString().replace("date_selected:", ""); // Видаляємо префікс
-                selectedDay = Integer.parseInt(selectedDate); // Зберігаємо вибраний день
+            else if (data[0].startsWith("date_selected")) {
+                long chatId = update.getCallbackQuery().getMessage().getChatId();
 
-                sendMessage(chatId, "📆 Ви обрали " + selectedDate + " число. Введіть кількість годин:");
-                currentState = State.WAIT_FOR_HOURS_AFTER_DATE; // Переходимо до введення годин
+                int selectedDate = Integer.parseInt(data[1]); // Отримуємо число дня
+                selectedDay = selectedDate; // Зберігаємо вибраний день
+
+                sendMessage(chatId, "📆 Ви обрали " + selectedDay + " число. Введіть кількість годин:");
+                currentState = State.WAIT_FOR_HOURS_AFTER_DATE; // Очікуємо введення годин
             }
+
 
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();

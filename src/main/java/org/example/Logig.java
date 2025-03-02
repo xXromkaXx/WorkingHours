@@ -135,14 +135,15 @@ public class Logig extends TelegramLongPollingBot {
         WAIT_FOR_HOURS,
 
         WAIT_FOR_HOURS_R
-
     }
 
 
     private enum State {
         START, reg, SavingName, AddWork, SavingWork, MAIN,ENTER_HOURS,SELECT_WORK_TO_VIEW,VIEW_WORK_HOURS,EDIT_WORK,MainMenuBackForLIST,editingHours
-    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE, CONFIRM_DELETEWORK,WAIT_FOR_HOURS_AFTER_DATE
+    ,reminderSetup,reminderHours,reminderMinutes,SET_TIMEZONE,WAITING_FOR_TIMEZONE,WAITING_FOR_CUSTOM_TIMEZONE, CONFIRM_DELETEWORK
+        ,WAIT_FOR_HOURS_AFTER_DATE
     }
+
 
     private String selectedWork;
 
@@ -188,15 +189,16 @@ private Integer rHours=null;
                 long chatId = update.getMessage().getChatId();
                 sendCalendar(chatId); // Викликаємо метод для показу календаря
             }
-           else if (data != null && data.toString().startsWith("date_selected:")) {
-                long chatId = update.getMessage().getChatId();
-                String selectedDate = data.toString().replace("date_selected:", "");
+            else if (data != null && data.toString().startsWith("date_selected:")) {
+                long chatId = update.getCallbackQuery().getMessage().getChatId(); // Виправлено!
+
+                String selectedDate = data.toString().replace("date_selected:", ""); // Видаляємо префікс
                 selectedDay = Integer.parseInt(selectedDate); // Зберігаємо вибраний день
 
                 sendMessage(chatId, "📆 Ви обрали " + selectedDate + " число. Введіть кількість годин:");
-                currentSubState = SubState.NONE; // Переходимо до введення годин
-
+                currentState = State.WAIT_FOR_HOURS_AFTER_DATE; // Переходимо до введення годин
             }
+
         } else if (update.hasMessage() && update.getMessage().hasText()) {
             String messageText = update.getMessage().getText();
             messageText = messageText.substring(0, 1).toUpperCase() + messageText.substring(1).toLowerCase();
@@ -357,16 +359,17 @@ messageText=messageText.substring(0, 1).toUpperCase() + messageText.substring(1)
 
 
 case WAIT_FOR_HOURS_AFTER_DATE:
+
     if (!messageText.matches("\\d+")) {
         sendMessage(chatId, "❌ Введіть тільки число годин (наприклад, 5).");
         return;
     }
 
     int hours3 = Integer.parseInt(messageText);
-    addWorkHours2(chatId, selectedWork, selectedDay, hours3); // Викликаємо метод із передачею дня
+    addWorkHours2(chatId, selectedWork, selectedDay, hours3);
 
     sendMessage(chatId, "✅ Години збережено для " + selectedDay + " числа.");
-    currentSubState = SubState.NONE; // Повертаємося до звичайного режиму
+    currentSubState = SubState.NONE; // Скидаємо стан
     break;
 
                 case reminderSetup:

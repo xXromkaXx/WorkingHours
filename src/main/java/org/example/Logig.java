@@ -370,8 +370,8 @@ case WAIT_FOR_HOURS_AFTER_DATE:
     int hours3 = Integer.parseInt(messageText);
     addWorkHours2(chatId, selectedWork, selectedDay, hours3);
 
-    sendMessage(chatId, "✅ Години збережено для " + selectedDay + " числа.");
-    currentSubState = SubState.NONE; // Скидаємо стан
+
+
     break;
 
                 case reminderSetup:
@@ -519,11 +519,14 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                             return;
 
                         case "Видалити роботу":
+                            if(selectedWork !=null) {
 //                            deleteJob(chatId, selectedWork);
 //                            currentState = State.MAIN;
 //                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
-                            sendDeleteConfirmation(chatId, selectedWork);
-                            currentState = State.CONFIRM_DELETEWORK;
+                                sendDeleteConfirmation(chatId, selectedWork);
+                            }else {
+                                sendMessage(chatId, "❌ Помилка:  роботу не видалено.");
+                            }
                             break;
 
 
@@ -579,6 +582,8 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);
                     }
+                    else  {sendMessage(chatId, "❌ Невідома команда. Спробуйте ще раз.");}
+
                     break;
 
 
@@ -1120,7 +1125,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
                     insertStmt.executeUpdate();
                 }
             }
-
+currentState=State.MAIN ;
             sendMessage(chatId, "✅ Години успішно додано для роботи: " + workName +
                     " на " + day + " число місяця " + currentMonth);
 
@@ -1276,6 +1281,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 
 
     private void sendDeleteConfirmation(long chatId, String workName) {
+        currentState = State.CONFIRM_DELETEWORK;
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
         message.setText("⚠ Ви впевнені, що хочете видалити роботу \"" + workName + "\"?");

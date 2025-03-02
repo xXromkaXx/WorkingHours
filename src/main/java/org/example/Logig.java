@@ -525,6 +525,7 @@ case WAIT_FOR_HOURS_AFTER_DATE:
 //                            menuMain(chatId, "Роботу \"" + selectedWork + "\" видалено.");
                                 sendDeleteConfirmation(chatId, selectedWork);
                                 currentState = State.CONFIRM_DELETEWORK;
+                                return;
                             }else {
                                 sendMessage(chatId, "❌ Помилка:  роботу не видалено.");
                             }

@@ -1048,7 +1048,7 @@ public class Logig extends TelegramLongPollingBot {
             try (ResultSet rs = singleWorkStmt.executeQuery()) {
                 if (rs.isBeforeFirst() && rs.next()) { // Якщо є тільки один запис
                     String workName = rs.getString("work_name");
-                    sendMessage(chatId, "📌 Автоматично вибрано роботу: " + workName);
+
                     requestHoursInput(chatId, workName);
                     return;
                 }
@@ -1059,7 +1059,7 @@ public class Logig extends TelegramLongPollingBot {
             try (ResultSet rs = selectStmt.executeQuery()) {
                 if (rs.next()) {
                     String workName = rs.getString("work_name");
-                    sendMessage(chatId, "📌 Автоматично вибрано найчастішу роботу: " + workName);
+
                     requestHoursInput(chatId, workName);
                 } else {
                     sendMessage(chatId, "⚠ У вас ще немає збережених робіт.");
@@ -1075,11 +1075,28 @@ public class Logig extends TelegramLongPollingBot {
         currentState = State.ENTER_HOURS; // Встановлюємо стан введення годин
         selectedWork = workName; // Зберігаємо вибрану роботу для введення
 
+        // Отримуємо дві найчастіше використовувані години
+        int[] commonHours = getMostUsedHours(chatId);
+        int hour1 = commonHours[0]; // Найпопулярніша година
+        int hour2 = commonHours[1]; // Додаткова опція
+
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
-        message.setText("⏳ Введіть кількість годин для \"" + workName + "\":");
+        message.setText("⏳ Введіть кількість годин для роботи \"" + workName + "\":");
         message.setReplyMarkup(new ForceReplyKeyboard());
+// Створюємо клавіатуру з кнопками
+        ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
+        keyboardMarkup.setResizeKeyboard(true);
 
+        KeyboardRow row1 = new KeyboardRow();
+        row1.add(new KeyboardButton( String.valueOf(hour1)));
+        row1.add(new KeyboardButton( String.valueOf(hour2)));
+
+        KeyboardRow row2 = new KeyboardRow();
+        row2.add(new KeyboardButton("Головне меню"));
+
+        keyboardMarkup.setKeyboard(List.of(row1, row2));
+        message.setReplyMarkup(keyboardMarkup);
         try {
             execute(message);
         } catch (TelegramApiException e) {

@@ -116,6 +116,11 @@ public class Logig extends TelegramLongPollingBot {
             pstmt.setLong(3, chatId);
             pstmt.executeUpdate();
 
+            // ВИДАЛЯЄМО СТАРЕ НАГАДУВАННЯ
+            if (reminderTasks.containsKey(chatId)) {
+                reminderTasks.get(chatId).cancel(false); // Зупиняємо старе нагадування
+                reminderTasks.remove(chatId); // Видаляємо з мапи
+            }
             sendMessage(chatId,"Час нагадування успішно оновлено.");
 
             // Переплановуємо нагадування для користувача
@@ -561,7 +566,11 @@ public class Logig extends TelegramLongPollingBot {
                     currentState = State.MAIN;
                     break;
                 case ENTER_HOURS:
-                    if (messageText.equals("Назад")) {
+                    if (messageText.equals("Головне меню")) {
+                        currentState = State.MAIN;
+                        menuMain(chatId, "\"Виберіть дію:\"\n- Назва роботи – корегування\n- Додати роботу\n- Нагадування");  // Показуємо головне меню
+                        return;}
+                    else if (messageText.equals("Назад")) {
                         currentState = State.EDIT_WORK;
                         showSettingUpWorkMenu(chatId);  // Повертаємо користувача до меню редагування роботи
                         return;
@@ -1071,7 +1080,7 @@ public class Logig extends TelegramLongPollingBot {
         }
     }
     private void requestHoursInput(Long chatId, String workName) {
-        sendMessage(chatId,"request ,"+currentState);
+
         currentState = State.ENTER_HOURS; // Встановлюємо стан введення годин
         selectedWork = workName; // Зберігаємо вибрану роботу для введення
 

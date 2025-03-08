@@ -101,7 +101,7 @@ public class Logig extends TelegramLongPollingBot {
         String userName = getUserNameFromDatabase(chatId);  // Метод отримання імені
         String message = ReminderMessageGenerator.getRandomMessage(userName);
         sendMessage(chatId, message);
-
+        addWorkHoursAfterReminder(chatId);
     }
 
     // Метод для оновлення часу нагадування користувача у базі даних та перепланування нагадування
@@ -1046,7 +1046,7 @@ public class Logig extends TelegramLongPollingBot {
 
             singleWorkStmt.setLong(1, chatId);
             try (ResultSet rs = singleWorkStmt.executeQuery()) {
-                if (rs.next() && !rs.next()) { // Якщо є тільки один запис
+                if (rs.isBeforeFirst() && rs.next()) { // Якщо є тільки один запис
                     String workName = rs.getString("work_name");
                     sendMessage(chatId, "📌 Автоматично вибрано роботу: " + workName);
                     requestHoursInput(chatId, workName);
@@ -1071,6 +1071,7 @@ public class Logig extends TelegramLongPollingBot {
         }
     }
     private void requestHoursInput(Long chatId, String workName) {
+        sendMessage(chatId,"request ,"+currentState);
         currentState = State.ENTER_HOURS; // Встановлюємо стан введення годин
         selectedWork = workName; // Зберігаємо вибрану роботу для введення
 
@@ -1929,6 +1930,42 @@ public class Logig extends TelegramLongPollingBot {
     private String formatTime(int hour, int minute) {
         return String.format("%02d:%02d", hour, minute);
     }
+
+
+
+    private int[] getMostUsedHours(Long chatId) {
+        String sql = """
+        SELECT jsonb_each_text(work_data) ->> 'value' AS hours
+        FROM work_hours
+        WHERE chatid = ?
+    """;
+
+        Map<Integer, Integer> hourFrequency = new HashMap<>();
+
+        try (Connection conn = DatabaseConnection.getConnection();
+             PreparedStatement stmt = conn.prepareStatement(sql)) {
+            stmt.setLong(1, chatId);
+            try (ResultSet rs = stmt.executeQuery()) {
+                while (rs.next()) {
+                    int hours = Integer.parseInt(rs.getString("hours"));
+                    hourFrequency.put(hours, hourFrequency.getOrDefault(hours, 0) + 1);
+                }
+            }
+        } catch (SQLException e) {
+            logger.error("Помилка SQL при отриманні найчастіших годин: {}", e.getMessage(), e);
+        }
+
+        // Сортуємо години за частотою використання (спаданням)
+        List<Map.Entry<Integer, Integer>> sortedHours = new ArrayList<>(hourFrequency.entrySet());
+        sortedHours.sort((a, b) -> b.getValue().compareTo(a.getValue()));
+
+        // Визначаємо дві найпопулярніші години або дефолтні
+        int hour1 = sortedHours.size() > 0 ? sortedHours.get(0).getKey() : 8;
+        int hour2 = sortedHours.size() > 1 ? sortedHours.get(1).getKey() : 12;
+
+        return new int[]{hour1, hour2};
+    }
+
 
 
     @Override

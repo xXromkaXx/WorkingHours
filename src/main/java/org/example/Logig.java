@@ -1091,7 +1091,7 @@ public class Logig extends TelegramLongPollingBot {
 
         SendMessage message = new SendMessage();
         message.setChatId(String.valueOf(chatId));
-        message.setText("⏳ Введіть кількість годин для роботи \"" + workName + "\":");
+        message.setText("⏳ Скільки годин працювали? Напишіть число або виберіть знизу. \"" + workName + "\":");
         message.setReplyMarkup(new ForceReplyKeyboard());
 // Створюємо клавіатуру з кнопками
         ReplyKeyboardMarkup keyboardMarkup = new ReplyKeyboardMarkup();
@@ -1944,7 +1944,7 @@ public class Logig extends TelegramLongPollingBot {
                 int minute = rs.getInt("reminder_minute");
                 String timezone= rs.getString("timezone");
 
-                sendMessage(chatId, "🔔 Ваше нагадування встановлено на *" + formatTime(hour, minute) + "* (часовий пояс: " + timezone + ").");
+                sendMessage(chatId, "🔔 Я нагадаю вам о *" + formatTime(hour, minute) + "* (часовий пояс: " + timezone + "). Хочете змінити? Натисніть «Змінити час» або «Видалити нагадування».");
             } else {
                 sendMessage(chatId, "У вас немає активного нагадування про запис робочих годин. Встановіть нагадування, щоб не забувати вносити дані ⏰.");
             }
